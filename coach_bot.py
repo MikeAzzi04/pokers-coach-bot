@@ -5,7 +5,8 @@ from discord import app_commands
 import os
 from openai import OpenAI
 
-client_ai = OpenAI(api_key="
+# ✅ Correct way to initialize OpenAI (uses Railway env variable)
+client_ai = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
 intents = discord.Intents.default()
 intents.members = True
@@ -108,8 +109,8 @@ async def on_message(message):
                 model="gpt-4o-mini",
                 messages=[
                     {
-    "role": "system",
-    "content": """You are a professional poker coach and gambling strategist.
+                        "role": "system",
+                        "content": """You are a professional poker coach and gambling strategist.
 
 Your job is to help users improve at poker, blackjack, and decision-making in gambling.
 
@@ -135,7 +136,7 @@ Keep answers:
 - conversational (like a real coach)
 - not too long unless needed
 """
-},
+                    },
                     {
                         "role": "user",
                         "content": message.content
@@ -148,9 +149,10 @@ Keep answers:
             await message.channel.send(reply)
 
         except Exception as e:
-            print(e)
+            print("ERROR:", e)
             await message.channel.send("Error processing request.")
 
     await bot.process_commands(message)
 
-bot.run(os.getenv("TOKEN"))
+# ✅ Run bot (TOKEN comes from Railway variables)
+bot.run(os.environ["TOKEN"])
