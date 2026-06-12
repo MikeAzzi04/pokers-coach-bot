@@ -5,9 +5,7 @@ from discord import app_commands
 import os
 from openai import OpenAI
 
-
-client_ai = OpenAI()
-print("KEY:", os.getenv("OPENAI_API_KEY"))
+client_ai = OpenAI(api_key="
 
 intents = discord.Intents.default()
 intents.members = True
