@@ -3,12 +3,10 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 import os
-from dotenv import load_dotenv
 from openai import OpenAI
 
-load_dotenv()
 
-client_ai = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client_ai = OpenAI()
 
 intents = discord.Intents.default()
 intents.members = True
