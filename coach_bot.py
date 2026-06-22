@@ -3,9 +3,9 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 import os
+import asyncio
 from openai import OpenAI
 
-# ✅ Correct way to initialize OpenAI (uses Railway env variable)
 client_ai = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
 intents = discord.Intents.default()
@@ -17,6 +17,9 @@ tree = bot.tree
 
 # Track active sessions
 active_sessions = {}
+
+# NEW: memory per user
+user_memory = {}
 
 # ========================
 # BOT READY
@@ -57,9 +60,20 @@ async def coach(interaction: discord.Interaction):
 
     active_sessions[user.id] = channel.id
 
+    # NEW: initialize memory
+    user_memory[user.id] = []
+
     await interaction.response.send_message(
         f"Your private coach session is ready: {channel.mention}",
         ephemeral=True
+    )
+
+    # NEW: welcome message
+    await channel.send(
+        f"Hey {user.name} 👋\n\n"
+        "I’m your poker coach.\n"
+        "Ask me anything about poker, blackjack, or strategy.\n"
+        "Let’s improve your game."
     )
 
 # ========================
@@ -85,6 +99,10 @@ async def end_coach(interaction: discord.Interaction):
 
     del active_sessions[user.id]
 
+    # NEW: delete memory
+    if user.id in user_memory:
+        del user_memory[user.id]
+
     await interaction.response.send_message(
         "Coaching session ended.",
         ephemeral=True
@@ -101,58 +119,76 @@ async def on_message(message):
 
     user_id = message.author.id
 
-    # Only respond inside user's coach channel
     if user_id in active_sessions and message.channel.id == active_sessions[user_id]:
 
+        await message.channel.typing()
+
+        # NEW: build memory
+        history = user_memory.get(user_id, [])
+
+        history.append({"role": "user", "content": message.content})
+
+        # limit memory
+        history = history[-15:]
+
         try:
-            response = client_ai.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": """You are a professional poker coach and gambling strategist.
+            response = None
 
-Your job is to help users improve at poker, blackjack, and decision-making in gambling.
+            for attempt in range(3):  # retry system
+                try:
+                    await asyncio.sleep(0.3)
 
-You should answer:
-- Poker questions
-- Blackjack questions
-- Gambling strategy
-- Odds and probability
-- Learning poker or card games
-- Mindset, discipline, and decision-making in games
+                    response = client_ai.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=[
+                            {
+                                "role": "system",
+                                "content": """You are a smart, natural poker coach.
 
-If a question is even slightly related to poker, gambling, or strategy, answer it helpfully.
+Behave like ChatGPT.
 
-If unsure, assume it is related and answer.
+Understand slang, greetings, typos, weird inputs (like "hellozzz", "yo", "thx").
 
-Only reject questions if they are completely unrelated (like cars, politics, or random topics), and respond with:
+Respond naturally.
+
+If message is even slightly related to poker/gambling → answer.
+
+If casual (hi, thanks, etc) → respond normally.
+
+ONLY reject if completely unrelated:
 "I focus on poker, blackjack, and strategy."
 
-Keep answers:
-- clear
-- practical
-- slightly confident
-- conversational (like a real coach)
-- not too long unless needed
+Style:
+- friendly
+- confident
+- not robotic
 """
-                    },
-                    {
-                        "role": "user",
-                        "content": message.content
-                    }
-                ]
-            )
+                            }
+                        ] + history
+                    )
+
+                    break
+
+                except Exception as e:
+                    print(f"Retry {attempt+1} failed:", e)
+                    await asyncio.sleep(1)
+
+            if response is None:
+                await message.channel.send("Try again in a second.")
+                return
 
             reply = response.choices[0].message.content
 
             await message.channel.send(reply)
 
+            # NEW: save assistant reply
+            history.append({"role": "assistant", "content": reply})
+            user_memory[user_id] = history
+
         except Exception as e:
-            print("ERROR:", e)
-            await message.channel.send("Error processing request.")
+            print("FINAL ERROR:", e)
+            await message.channel.send("Something went wrong. Try again.")
 
     await bot.process_commands(message)
 
-# ✅ Run bot (TOKEN comes from Railway variables)
 bot.run(os.environ["TOKEN"])
