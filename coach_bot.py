@@ -10,8 +10,8 @@ from openai import OpenAI
 client_ai = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
 TERMS_CHANNEL_ID = 1417522975514824806
-PORTAL_CHANNEL_ID = 123456789  # FIX THIS
-TIPS_CHANNEL_ID = 123456789    # ADD YOUR TIP CHANNEL
+PORTAL_CHANNEL_ID = 1521311652350263378  # OFFERS Channel
+TIPS_CHANNEL_ID = 1521311587711979640    
 
 intents = discord.Intents.default()
 intents.members = True
