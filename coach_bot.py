@@ -10,7 +10,7 @@ from openai import OpenAI
 client_ai = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
 TERMS_CHANNEL_ID = 1417522975514824806
-PORTAL_CHANNEL_ID = 1521311652350263378  # OFFERS Channel
+PORTAL_CHANNEL_ID = 1521311652350263378
 TIPS_CHANNEL_ID = 1521311587711979640    
 
 intents = discord.Intents.default()
@@ -145,7 +145,7 @@ async def end_coach(interaction: discord.Interaction):
     await interaction.response.send_message("Session ended.", ephemeral=True)
 
 # ========================
-# AI CHAT
+# AI CHAT (FIXED PROMPT)
 # ========================
 @bot.event
 async def on_message(message):
@@ -177,14 +177,32 @@ async def on_message(message):
                                 "role": "system",
                                 "content": """You are a smart, natural poker coach.
 
-Understand slang, greetings, and casual talk.
+Behave like ChatGPT.
 
-Answer poker/gambling questions.
+Understand slang, greetings, typos, and weird inputs (like "hellozzz", "yo", "thx").
 
-If casual (hi, thanks), respond normally.
+Respond naturally and conversationally.
 
-Reject only unrelated topics:
-"I focus on poker, blackjack, and strategy."
+If the message is related to poker, blackjack, or strategy → answer clearly.
+
+If the message is casual (hi, thanks, small talk) → respond like a normal human.
+
+If the topic is completely unrelated:
+- respond naturally
+- vary your wording every time
+- keep it short and casual
+- do NOT repeat the same sentence
+
+Examples of tone (do not copy exactly):
+- "Not really my area — I stick to poker."
+- "That’s outside my lane — got any poker questions?"
+- "I can’t help much with that, but I can break down poker spots."
+
+Style:
+- human
+- confident
+- relaxed
+- not robotic
 """
                             }
                         ] + history
